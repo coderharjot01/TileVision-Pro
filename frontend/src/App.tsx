@@ -54,6 +54,7 @@ export default function App() {
   const [offsetDrag, setOffsetDrag] = useState<Point>({ x: 0, y: 0 });
   const [activeTab, setActiveTab] = useState<'design' | 'compare' | 'projects'>('design');
   const [tileUnit, setTileUnit] = useState<Unit>('mm');
+  const [wizardStep, setWizardStep] = useState<number>(1);
 
   const plannerRef = useRef<HTMLDivElement | null>(null);
 
@@ -177,6 +178,7 @@ export default function App() {
     setProject(demoProject);
     setActiveRoomId('room-demo-1');
     setViewMode('2d');
+    setWizardStep(1);
     scrollToPlanner();
     triggerParticles();
   };
@@ -187,6 +189,7 @@ export default function App() {
     setActiveRoomId('room-1');
     setViewMode('2d');
     setOffsetDrag({ x: 0, y: 0 });
+    setWizardStep(1);
     triggerParticles();
   };
 
@@ -319,86 +322,293 @@ export default function App() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             
             {/* Left Column controls sidebar */}
-            <div className="lg:col-span-5 space-y-6">
+            <div className="lg:col-span-5 space-y-6 flex flex-col justify-between min-h-[500px]">
               
-              {/* Multi Room dashboard list */}
-              <MultiRoom
-                rooms={project.rooms}
-                activeRoomId={activeRoomId}
-                onActiveRoomChange={setActiveRoomId}
-                onRoomsChange={(rooms) => setProject((prev: Project) => ({ ...prev, rooms }))}
-                unit={activeRoom.unit}
-                calculateRoomStats={calculateRoomStats}
-              />
+              <div className="space-y-6">
+                {/* Stepper progress bar */}
+                <div className="flex items-center justify-between mb-2 px-1 bg-white/40 backdrop-blur-md p-3.5 rounded-3xl border border-white/60 shadow-sm">
+                  {[
+                    { step: 1, label: 'Room' },
+                    { step: 2, label: 'Tiles' },
+                    { step: 3, label: 'Pattern' },
+                    { step: 4, label: 'Budget' },
+                    { step: 5, label: 'Results' }
+                  ].map((s, idx) => (
+                    <React.Fragment key={s.step}>
+                      <button
+                        onClick={() => setWizardStep(s.step)}
+                        className="flex flex-col items-center gap-1.5 cursor-pointer focus:outline-none group"
+                      >
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
+                          wizardStep === s.step
+                            ? 'bg-luxury-gold text-luxury-charcoal shadow shadow-luxury-gold/30 scale-110'
+                            : wizardStep > s.step
+                              ? 'bg-luxury-charcoal text-white border border-luxury-gold/30'
+                              : 'bg-white text-gray-400 border border-gray-200 hover:border-gray-450'
+                        }`}>
+                          {s.step}
+                        </div>
+                        <span className={`text-[9px] font-bold uppercase tracking-widest ${
+                          wizardStep === s.step ? 'text-luxury-gold' : 'text-gray-400 group-hover:text-gray-600'
+                        }`}>
+                          {s.label}
+                        </span>
+                      </button>
+                      {idx < 4 && (
+                        <div className={`flex-1 h-[2px] mx-1 transition-colors duration-300 ${
+                          wizardStep > s.step ? 'bg-luxury-charcoal' : 'bg-gray-200'
+                        }`} />
+                      )}
+                    </React.Fragment>
+                  ))}
+                </div>
 
-              {/* 1. Room blueprint and dimensions */}
-              <RoomEditor
-                shape={activeRoom.shape}
-                width={activeRoom.width}
-                height={activeRoom.height}
-                unit={activeRoom.unit}
-                vertices={activeRoom.vertices}
-                options={activeRoom.options || {}}
-                onUpdateActiveRoom={updateActiveRoom}
-              />
+                {/* Step contents */}
+                <div className="space-y-6">
+                  {wizardStep === 1 && (
+                    <div className="space-y-6 animate-fade-in">
+                      {/* Multi Room dashboard list */}
+                      <MultiRoom
+                        rooms={project.rooms}
+                        activeRoomId={activeRoomId}
+                        onActiveRoomChange={setActiveRoomId}
+                        onRoomsChange={(rooms) => setProject((prev: Project) => ({ ...prev, rooms }))}
+                        unit={activeRoom.unit}
+                        calculateRoomStats={calculateRoomStats}
+                      />
 
-              {/* 2. Grout width and pattern selectors */}
-              <PatternSelector
-                pattern={project.pattern}
-                onPatternChange={(pattern) => setProject((prev: Project) => ({ ...prev, pattern }))}
-                groutWidth={project.groutWidth}
-                onGroutWidthChange={(groutWidth) => setProject((prev: Project) => ({ ...prev, groutWidth }))}
-                startPosition={project.startPosition}
-                onStartPositionChange={(startPosition) => setProject((prev: Project) => ({ ...prev, startPosition }))}
-                tileUnit={tileUnit}
-              />
+                      {/* 1. Room blueprint and dimensions */}
+                      <RoomEditor
+                        shape={activeRoom.shape}
+                        width={activeRoom.width}
+                        height={activeRoom.height}
+                        unit={activeRoom.unit}
+                        vertices={activeRoom.vertices}
+                        options={activeRoom.options || {}}
+                        onUpdateActiveRoom={updateActiveRoom}
+                      />
+                    </div>
+                  )}
 
-              {/* 3. Tile specifications and quantities calculators */}
-              <CalculatorComponent
-                tileWidth={project.tileWidth}
-                tileHeight={project.tileHeight}
-                onTileWidthChange={(tileWidth) => setProject((prev: Project) => ({ ...prev, tileWidth }))}
-                onTileHeightChange={(tileHeight) => setProject((prev: Project) => ({ ...prev, tileHeight }))}
-                isCustomTile={project.isCustomTile}
-                onIsCustomTileChange={(isCustomTile) => setProject((prev: Project) => ({ ...prev, isCustomTile }))}
-                wastage={project.wastage}
-                onWastageChange={(wastage) => setProject((prev: Project) => ({ ...prev, wastage }))}
-                tilePrice={activeRoom.tilePrice}
-                onTilePriceChange={(tilePrice) => updateActiveRoom({ tilePrice })}
-                pricingMode={activeRoom.pricingMode || 'tile'}
-                onPricingModeChange={(pricingMode) => updateActiveRoom({ pricingMode })}
-                packetPrice={activeRoom.packetPrice || 0}
-                onPacketPriceChange={(packetPrice) => updateActiveRoom({ packetPrice })}
-                packetCoverage={activeRoom.packetCoverage || 0}
-                onPacketCoverageChange={(packetCoverage) => updateActiveRoom({ packetCoverage })}
-                unit={activeRoom.unit}
-                tileUnit={tileUnit}
-                onTileUnitChange={(u) => {
-                  setTileUnit(u);
-                  setProject((prev: Project) => ({ ...prev, tileUnit: u }));
-                }}
-                totalArea={stats.totalAreaDisplay}
-                fullTiles={stats.fullTilesCount}
-                cutTiles={stats.cutTilesCount}
-                tilesRequired={stats.tilesRequired}
-                wastageTiles={stats.wastageTilesCount}
-                finalTilesNeeded={stats.finalTilesNeededCount}
-                boxesRequired={stats.boxesRequired}
-                estimatedCost={stats.estimatedCost}
-              />
+                  {wizardStep === 2 && (
+                    <div className="animate-fade-in">
+                      <CalculatorComponent
+                        tileWidth={project.tileWidth}
+                        tileHeight={project.tileHeight}
+                        onTileWidthChange={(tileWidth) => setProject((prev: Project) => ({ ...prev, tileWidth }))}
+                        onTileHeightChange={(tileHeight) => setProject((prev: Project) => ({ ...prev, tileHeight }))}
+                        isCustomTile={project.isCustomTile}
+                        onIsCustomTileChange={(isCustomTile) => setProject((prev: Project) => ({ ...prev, isCustomTile }))}
+                        wastage={project.wastage}
+                        onWastageChange={(wastage) => setProject((prev: Project) => ({ ...prev, wastage }))}
+                        tilePrice={activeRoom.tilePrice}
+                        onTilePriceChange={(tilePrice) => updateActiveRoom({ tilePrice })}
+                        pricingMode={activeRoom.pricingMode || 'tile'}
+                        onPricingModeChange={(pricingMode) => updateActiveRoom({ pricingMode })}
+                        packetPrice={activeRoom.packetPrice || 0}
+                        onPacketPriceChange={(packetPrice) => updateActiveRoom({ packetPrice })}
+                        packetCoverage={activeRoom.packetCoverage || 0}
+                        onPacketCoverageChange={(packetCoverage) => updateActiveRoom({ packetCoverage })}
+                        unit={activeRoom.unit}
+                        tileUnit={tileUnit}
+                        onTileUnitChange={(u) => {
+                          setTileUnit(u);
+                          setProject((prev: Project) => ({ ...prev, tileUnit: u }));
+                        }}
+                        totalArea={stats.totalAreaDisplay}
+                        fullTiles={stats.fullTilesCount}
+                        cutTiles={stats.cutTilesCount}
+                        tilesRequired={stats.tilesRequired}
+                        wastageTiles={stats.wastageTilesCount}
+                        finalTilesNeeded={stats.finalTilesNeededCount}
+                        boxesRequired={stats.boxesRequired}
+                        estimatedCost={stats.estimatedCost}
+                        viewMode="tiles"
+                      />
+                    </div>
+                  )}
 
-              {/* AI Assistant Recommender Panel */}
-              <AIRecommender
-                roomVertices={activeRoom.vertices}
-                groutWidth={project.groutWidth}
-                pattern={project.pattern}
-                startPosition={project.startPosition}
-                wastage={project.wastage}
-                tilePrice={activeRoom.tilePrice}
-                unit={activeRoom.unit}
-                tileUnit={tileUnit}
-                onSelectSize={(w, h) => setProject((prev: Project) => ({ ...prev, tileWidth: w, tileHeight: h }))}
-              />
+                  {wizardStep === 3 && (
+                    <div className="animate-fade-in">
+                      <PatternSelector
+                        pattern={project.pattern}
+                        onPatternChange={(pattern) => setProject((prev: Project) => ({ ...prev, pattern }))}
+                        groutWidth={project.groutWidth}
+                        onGroutWidthChange={(groutWidth) => setProject((prev: Project) => ({ ...prev, groutWidth }))}
+                        startPosition={project.startPosition}
+                        onStartPositionChange={(startPosition) => setProject((prev: Project) => ({ ...prev, startPosition }))}
+                        tileUnit={tileUnit}
+                      />
+                    </div>
+                  )}
+
+                  {wizardStep === 4 && (
+                    <div className="animate-fade-in">
+                      <CalculatorComponent
+                        tileWidth={project.tileWidth}
+                        tileHeight={project.tileHeight}
+                        onTileWidthChange={(tileWidth) => setProject((prev: Project) => ({ ...prev, tileWidth }))}
+                        onTileHeightChange={(tileHeight) => setProject((prev: Project) => ({ ...prev, tileHeight }))}
+                        isCustomTile={project.isCustomTile}
+                        onIsCustomTileChange={(isCustomTile) => setProject((prev: Project) => ({ ...prev, isCustomTile }))}
+                        wastage={project.wastage}
+                        onWastageChange={(wastage) => setProject((prev: Project) => ({ ...prev, wastage }))}
+                        tilePrice={activeRoom.tilePrice}
+                        onTilePriceChange={(tilePrice) => updateActiveRoom({ tilePrice })}
+                        pricingMode={activeRoom.pricingMode || 'tile'}
+                        onPricingModeChange={(pricingMode) => updateActiveRoom({ pricingMode })}
+                        packetPrice={activeRoom.packetPrice || 0}
+                        onPacketPriceChange={(packetPrice) => updateActiveRoom({ packetPrice })}
+                        packetCoverage={activeRoom.packetCoverage || 0}
+                        onPacketCoverageChange={(packetCoverage) => updateActiveRoom({ packetCoverage })}
+                        unit={activeRoom.unit}
+                        tileUnit={tileUnit}
+                        onTileUnitChange={(u) => {
+                          setTileUnit(u);
+                          setProject((prev: Project) => ({ ...prev, tileUnit: u }));
+                        }}
+                        totalArea={stats.totalAreaDisplay}
+                        fullTiles={stats.fullTilesCount}
+                        cutTiles={stats.cutTilesCount}
+                        tilesRequired={stats.tilesRequired}
+                        wastageTiles={stats.wastageTilesCount}
+                        finalTilesNeeded={stats.finalTilesNeededCount}
+                        boxesRequired={stats.boxesRequired}
+                        estimatedCost={stats.estimatedCost}
+                        viewMode="budget"
+                      />
+                    </div>
+                  )}
+
+                  {wizardStep === 5 && (
+                    <div className="space-y-4 animate-fade-in">
+                      <CalculatorComponent
+                        tileWidth={project.tileWidth}
+                        tileHeight={project.tileHeight}
+                        onTileWidthChange={(tileWidth) => setProject((prev: Project) => ({ ...prev, tileWidth }))}
+                        onTileHeightChange={(tileHeight) => setProject((prev: Project) => ({ ...prev, tileHeight }))}
+                        isCustomTile={project.isCustomTile}
+                        onIsCustomTileChange={(isCustomTile) => setProject((prev: Project) => ({ ...prev, isCustomTile }))}
+                        wastage={project.wastage}
+                        onWastageChange={(wastage) => setProject((prev: Project) => ({ ...prev, wastage }))}
+                        tilePrice={activeRoom.tilePrice}
+                        onTilePriceChange={(tilePrice) => updateActiveRoom({ tilePrice })}
+                        pricingMode={activeRoom.pricingMode || 'tile'}
+                        onPricingModeChange={(pricingMode) => updateActiveRoom({ pricingMode })}
+                        packetPrice={activeRoom.packetPrice || 0}
+                        onPacketPriceChange={(packetPrice) => updateActiveRoom({ packetPrice })}
+                        packetCoverage={activeRoom.packetCoverage || 0}
+                        onPacketCoverageChange={(packetCoverage) => updateActiveRoom({ packetCoverage })}
+                        unit={activeRoom.unit}
+                        tileUnit={tileUnit}
+                        onTileUnitChange={(u) => {
+                          setTileUnit(u);
+                          setProject((prev: Project) => ({ ...prev, tileUnit: u }));
+                        }}
+                        totalArea={stats.totalAreaDisplay}
+                        fullTiles={stats.fullTilesCount}
+                        cutTiles={stats.cutTilesCount}
+                        tilesRequired={stats.tilesRequired}
+                        wastageTiles={stats.wastageTilesCount}
+                        finalTilesNeeded={stats.finalTilesNeededCount}
+                        boxesRequired={stats.boxesRequired}
+                        estimatedCost={stats.estimatedCost}
+                        viewMode="results"
+                      />
+
+                      {/* Expandable layout recommendations */}
+                      <details className="group border border-gray-200/80 rounded-2xl bg-white shadow-sm overflow-hidden transition-all duration-300">
+                        <summary className="flex justify-between items-center p-3.5 font-bold text-[10px] uppercase tracking-wider text-luxury-charcoal cursor-pointer select-none bg-gray-50 hover:bg-gray-100 list-none">
+                          <div className="flex items-center gap-2">
+                            <span>💡 View Layout Recommendation</span>
+                          </div>
+                          <span className="text-gray-400 group-open:rotate-180 transition-transform duration-305 text-xs">▼</span>
+                        </summary>
+                        <div className="p-1 border-t border-gray-100 bg-white">
+                          <AIRecommender
+                            roomVertices={activeRoom.vertices}
+                            groutWidth={project.groutWidth}
+                            pattern={project.pattern}
+                            startPosition={project.startPosition}
+                            wastage={project.wastage}
+                            tilePrice={activeRoom.tilePrice}
+                            unit={activeRoom.unit}
+                            tileUnit={tileUnit}
+                            onSelectSize={(w, h) => setProject((prev: Project) => ({ ...prev, tileWidth: w, tileHeight: h }))}
+                          />
+                        </div>
+                      </details>
+
+                      {/* Expandable side by side comparisons */}
+                      <details className="group border border-gray-200/80 rounded-2xl bg-white shadow-sm overflow-hidden transition-all duration-300">
+                        <summary className="flex justify-between items-center p-3.5 font-bold text-[10px] uppercase tracking-wider text-luxury-charcoal cursor-pointer select-none bg-gray-50 hover:bg-gray-100 list-none">
+                          <div className="flex items-center gap-2">
+                            <span>📊 Compare Alternate Sizes</span>
+                          </div>
+                          <span className="text-gray-400 group-open:rotate-180 transition-transform duration-305 text-xs">▼</span>
+                        </summary>
+                        <div className="p-4 border-t border-gray-100 bg-white">
+                          <Comparison
+                            roomVertices={activeRoom.vertices}
+                            groutWidth={project.groutWidth}
+                            pattern={project.pattern}
+                            startPosition={project.startPosition}
+                            wastage={project.wastage}
+                            tilePrice={activeRoom.tilePrice}
+                            unit={activeRoom.unit}
+                            activeTileW={project.tileWidth}
+                            activeTileH={project.tileHeight}
+                            tileUnit={tileUnit}
+                            pricingMode={activeRoom.pricingMode || 'tile'}
+                            packetPrice={activeRoom.packetPrice || 0}
+                            packetCoverage={activeRoom.packetCoverage || 0}
+                            onTileSelect={(w, h) => {
+                              setProject((prev: Project) => ({ ...prev, tileWidth: w, tileHeight: h }));
+                              triggerParticles();
+                            }}
+                          />
+                        </div>
+                      </details>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Navigation buttons */}
+              <div className="flex justify-between items-center pt-4 border-t border-gray-150 mt-6 bg-white/20 p-2 rounded-2xl backdrop-blur-sm">
+                <button
+                  type="button"
+                  disabled={wizardStep === 1}
+                  onClick={() => setWizardStep(prev => prev - 1)}
+                  className={`px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition duration-300 border ${
+                    wizardStep === 1
+                      ? 'opacity-40 cursor-not-allowed border-gray-200 text-gray-400 bg-gray-50'
+                      : 'bg-white border-gray-250 text-luxury-charcoal hover:border-luxury-charcoal cursor-pointer hover:shadow-sm'
+                  }`}
+                >
+                  Previous
+                </button>
+                
+                {wizardStep < 5 ? (
+                  <button
+                    type="button"
+                    onClick={() => setWizardStep(prev => prev + 1)}
+                    className="px-6 py-2.5 bg-luxury-gold hover:bg-luxury-gold-hover text-luxury-charcoal font-semibold rounded-xl text-xs uppercase tracking-wider transition duration-300 shadow-md shadow-luxury-gold/15 cursor-pointer"
+                  >
+                    Continue
+                  </button>
+                ) : (
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={handleExportPDF}
+                      className="px-4 py-2.5 bg-luxury-charcoal hover:bg-black text-white font-semibold rounded-xl text-xs uppercase tracking-wider transition duration-300 cursor-pointer shadow-md"
+                    >
+                      Export PDF
+                    </button>
+                  </div>
+                )}
+              </div>
 
             </div>
 
@@ -514,6 +724,7 @@ export default function App() {
                 if (loaded.rooms?.length > 0) {
                   setActiveRoomId(loaded.rooms[0].id);
                 }
+                setWizardStep(1);
                 setActiveTab('design');
                 triggerParticles();
               }}

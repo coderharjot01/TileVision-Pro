@@ -75,6 +75,7 @@ interface CalculatorProps {
   finalTilesNeeded: number;
   boxesRequired: number;
   estimatedCost: number;
+  viewMode?: 'tiles' | 'budget' | 'results' | 'all';
 }
 
 export default function Calculator({
@@ -104,7 +105,8 @@ export default function Calculator({
   wastageTiles,
   finalTilesNeeded,
   boxesRequired,
-  estimatedCost
+  estimatedCost,
+  viewMode = 'all'
 }: CalculatorProps) {
   const [showTooltip, setShowTooltip] = useState(false);
 
@@ -135,7 +137,8 @@ export default function Calculator({
     <div className="space-y-6">
       
       {/* 2. Tile Selection */}
-      <div className="glass-panel-light rounded-3xl p-6 border border-white/60 shadow-xl space-y-4">
+      {(viewMode === 'all' || viewMode === 'tiles') && (
+        <div className="glass-panel-light rounded-3xl p-6 border border-white/60 shadow-xl space-y-4">
         <div className="flex justify-between items-center border-b border-gray-100 pb-3">
           <div>
             <h2 className="text-xl font-semibold text-luxury-charcoal">2. Tile Dimensions</h2>
@@ -237,10 +240,12 @@ export default function Calculator({
             </div>
           </div>
         )}
-      </div>
+        </div>
+      )}
 
       {/* 3. Cost & Wastage Setup */}
-      <div className="glass-panel-light rounded-3xl p-6 border border-white/60 shadow-xl space-y-6">
+      {(viewMode === 'all' || viewMode === 'budget') && (
+        <div className="glass-panel-light rounded-3xl p-6 border border-white/60 shadow-xl space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Wastage */}
           <div className="space-y-3">
@@ -376,11 +381,14 @@ export default function Calculator({
               </div>
             </div>
           )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* 4. Results Cards Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      {(viewMode === 'all' || viewMode === 'results') && (
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         
         {/* Total Area */}
         <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm relative overflow-hidden flex flex-col justify-between h-28">
@@ -480,6 +488,8 @@ export default function Calculator({
             <CountUp value={estimatedCost} formatter={currencyFormatter} />
           </div>
         </div>
+      )}
+        </>
       )}
 
     </div>
