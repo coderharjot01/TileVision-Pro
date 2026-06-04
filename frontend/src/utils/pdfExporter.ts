@@ -76,8 +76,15 @@ export function exportProjectPDF({ project, activeRoom, stats, canvasElement }: 
   doc.text('Room Geometry:', 15, 74);
   doc.text(`${activeRoom.shape.toUpperCase()} (${activeRoom.width} × ${activeRoom.height} ${activeRoom.unit})`, 45, 74);
 
-  // Right Column Info
   const tileUnit = project.tileUnit || 'mm';
+
+  if (activeRoom.skirtingEnabled) {
+    doc.text('Skirting Height:', 15, 80);
+    const displaySkirtingH = Math.round(convertFromMm(activeRoom.skirtingHeight || 100, tileUnit) * 100) / 100;
+    doc.text(`${displaySkirtingH} ${tileUnit} (${activeRoom.skirtingHeight || 100} mm)`, 45, 80);
+  }
+
+  // Right Column Info
   const displayTileW = Math.round(convertFromMm(project.tileWidth, tileUnit) * 100) / 100;
   const displayTileH = Math.round(convertFromMm(project.tileHeight, tileUnit) * 100) / 100;
   const displayGrout = Math.round(convertFromMm(project.groutWidth, tileUnit) * 100) / 100;
@@ -117,20 +124,28 @@ export function exportProjectPDF({ project, activeRoom, stats, canvasElement }: 
   doc.setFontSize(9);
   doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
   
-  let currentY = 117;
+  let currentY = 116;
   const isPacket = activeRoom.pricingMode === 'packet';
   const items = [
     { name: 'Total Calculated Room Floor Area', val: `${stats.totalAreaDisplay.toFixed(2)} sq ${activeRoom.unit}` },
     { name: 'Full (Uncut) Tiles Positioned', val: `${stats.fullTilesCount} pcs` },
     { name: 'Partial Cut Edge Tiles Needed', val: `${stats.cutTilesCount} pcs` },
-    { name: `Calculated Installation Wastage (${project.wastage}%)`, val: `${stats.wastageTilesCount} pcs` },
-    { name: 'Total Purchase Tile Count (Net + Wastage)', val: `${stats.finalTilesNeededCount} pcs` },
-    { name: isPacket ? 'Estimated Packets (Packet coverage based)' : 'Estimated Boxes (Box coverage based)', val: `${stats.boxesRequired} ${isPacket ? 'packets' : 'boxes'}` }
+    { name: `Calculated Installation Wastage (${project.wastage}%)`, val: `${stats.wastageTilesCount} pcs` }
   ];
+
+  if (activeRoom.skirtingEnabled) {
+    items.push({ name: `Skirting Perimeter Length`, val: `${(stats.skirtingLengthDisplay || 0).toFixed(2)} ${activeRoom.unit}` });
+    items.push({ name: `Tiles Required for Skirting (Cut from floor tiles)`, val: `${stats.skirtingTilesCount || 0} pcs` });
+  }
+
+  items.push({ name: 'Total Purchase Tile Count (Floor + Wastage + Skirting)', val: `${stats.finalTilesNeededCount} pcs` });
+  items.push({ name: isPacket ? 'Estimated Packets (Packet coverage based)' : 'Estimated Boxes (Box coverage based)', val: `${stats.boxesRequired} ${isPacket ? 'packets' : 'boxes'}` });
+
+  const rowHeight = activeRoom.skirtingEnabled ? 6.5 : 8;
 
   items.forEach((item, index) => {
     // Bold the final total row
-    if (index === 4) {
+    if (index === items.length - 2) {
       doc.setFont('Helvetica', 'bold');
     } else {
       doc.setFont('Helvetica', 'normal');
@@ -138,8 +153,8 @@ export function exportProjectPDF({ project, activeRoom, stats, canvasElement }: 
     doc.text(item.name, 18, currentY);
     doc.text(item.val, pageWidth - 60, currentY);
     doc.setDrawColor(245, 245, 245);
-    doc.line(15, currentY + 3, pageWidth - 15, currentY + 3);
-    currentY += 8;
+    doc.line(15, currentY + 2.5, pageWidth - 15, currentY + 2.5);
+    currentY += rowHeight;
   });
 
   // Estimated Cost banner
@@ -153,18 +168,18 @@ export function exportProjectPDF({ project, activeRoom, stats, canvasElement }: 
     }).format(stats.estimatedCost);
 
     doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-    doc.rect(15, currentY + 2, pageWidth - 30, 12, 'F');
+    doc.rect(15, currentY + 1, pageWidth - 30, 11, 'F');
     
     doc.setFont('Helvetica', 'bold');
-    doc.setFontSize(10);
+    doc.setFontSize(9);
     doc.setTextColor(accentColor[0], accentColor[1], accentColor[2]);
-    doc.text('ESTIMATED MATERIAL BUDGET (INR):', 20, currentY + 10);
-    doc.setFontSize(12);
+    doc.text('ESTIMATED MATERIAL BUDGET (INR):', 20, currentY + 8);
+    doc.setFontSize(11);
     doc.setTextColor(255, 255, 255);
-    doc.text(formattedCost, pageWidth - 60, currentY + 10);
-    currentY += 22;
+    doc.text(formattedCost, pageWidth - 60, currentY + 8);
+    currentY += 18;
   } else {
-    currentY += 10;
+    currentY += 8;
   }
 
   // 4. Layout Canvas Image Embed (Blueprint)
@@ -173,20 +188,20 @@ export function exportProjectPDF({ project, activeRoom, stats, canvasElement }: 
       const imgData = canvasElement.toDataURL('image/png');
       
       doc.setFont('Helvetica', 'bold');
-      doc.setFontSize(14);
+      doc.setFontSize(13);
       doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
       doc.text('Interactive Visual Layout Blueprint', 15, currentY);
       
       const boxW = pageWidth - 30; // 180mm
-      const boxH = 75; // 75mm
+      const boxH = activeRoom.skirtingEnabled ? 65 : 75; // Adjust height if skirting table row takes space
       
       // Draw background panel for blueprint
       doc.setFillColor(249, 250, 249);
       doc.setDrawColor(200, 200, 200);
-      doc.rect(15, currentY + 4, boxW, boxH, 'FD');
+      doc.rect(15, currentY + 3, boxW, boxH, 'FD');
       
       // Embed image inside boundary
-      doc.addImage(imgData, 'PNG', 16, currentY + 5, boxW - 2, boxH - 2);
+      doc.addImage(imgData, 'PNG', 16, currentY + 4, boxW - 2, boxH - 2);
     } catch (e) {
       console.error('Error drawing image onto PDF: ', e);
     }

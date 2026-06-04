@@ -17,6 +17,8 @@ import { calculateLayout, generateRoomVertices } from './utils/tileCalculations'
 import { exportProjectPDF } from './utils/pdfExporter';
 
 // Default initial state
+const EMPTY_OPTIONS = {};
+
 const defaultRoom: Room = {
   id: 'room-1',
   name: 'Living Room',
@@ -29,6 +31,8 @@ const defaultRoom: Room = {
   pricingMode: 'tile',
   packetPrice: 1200,
   packetCoverage: 15,
+  skirtingEnabled: false,
+  skirtingHeight: 100,
   options: {}
 };
 
@@ -78,7 +82,9 @@ export default function App() {
       offsetDrag,
       activeRoom.pricingMode || 'tile',
       activeRoom.packetPrice || 0,
-      activeRoom.packetCoverage || 0
+      activeRoom.packetCoverage || 0,
+      activeRoom.skirtingEnabled || false,
+      activeRoom.skirtingHeight || 100
     );
   }, [activeRoom, project, offsetDrag]);
 
@@ -113,7 +119,9 @@ export default function App() {
       { x: 0, y: 0 },
       room.pricingMode || 'tile',
       room.packetPrice || 0,
-      room.packetCoverage || 0
+      room.packetCoverage || 0,
+      room.skirtingEnabled || false,
+      room.skirtingHeight || 100
     );
     return {
       area: roomStats.totalAreaDisplay,
@@ -143,6 +151,8 @@ export default function App() {
       packetPrice: 1500,
       packetCoverage: 12,
       vertices: generateRoomVertices('l-shape', 16, 14, 'ft', { w2: 8, h2: 7 }),
+      skirtingEnabled: false,
+      skirtingHeight: 100,
       options: { w2: 8, h2: 7 }
     };
 
@@ -157,7 +167,10 @@ export default function App() {
       pricingMode: 'tile',
       packetPrice: 1400,
       packetCoverage: 10,
-      vertices: generateRoomVertices('rectangle', 10, 8, 'ft')
+      vertices: generateRoomVertices('rectangle', 10, 8, 'ft'),
+      skirtingEnabled: false,
+      skirtingHeight: 100,
+      options: {}
     };
 
     const demoProject: Project = {
@@ -384,7 +397,7 @@ export default function App() {
                         height={activeRoom.height}
                         unit={activeRoom.unit}
                         vertices={activeRoom.vertices}
-                        options={activeRoom.options || {}}
+                        options={activeRoom.options || EMPTY_OPTIONS}
                         onUpdateActiveRoom={updateActiveRoom}
                       />
                     </div>
@@ -424,6 +437,12 @@ export default function App() {
                         boxesRequired={stats.boxesRequired}
                         estimatedCost={stats.estimatedCost}
                         viewMode="tiles"
+                        skirtingEnabled={activeRoom.skirtingEnabled || false}
+                        onSkirtingEnabledChange={(skirtingEnabled) => updateActiveRoom({ skirtingEnabled })}
+                        skirtingHeight={activeRoom.skirtingHeight || 100}
+                        onSkirtingHeightChange={(skirtingHeight) => updateActiveRoom({ skirtingHeight })}
+                        skirtingTilesCount={stats.skirtingTilesCount || 0}
+                        skirtingLengthDisplay={stats.skirtingLengthDisplay || 0}
                       />
                     </div>
                   )}
@@ -476,6 +495,12 @@ export default function App() {
                         boxesRequired={stats.boxesRequired}
                         estimatedCost={stats.estimatedCost}
                         viewMode="budget"
+                        skirtingEnabled={activeRoom.skirtingEnabled || false}
+                        onSkirtingEnabledChange={(skirtingEnabled) => updateActiveRoom({ skirtingEnabled })}
+                        skirtingHeight={activeRoom.skirtingHeight || 100}
+                        onSkirtingHeightChange={(skirtingHeight) => updateActiveRoom({ skirtingHeight })}
+                        skirtingTilesCount={stats.skirtingTilesCount || 0}
+                        skirtingLengthDisplay={stats.skirtingLengthDisplay || 0}
                       />
                     </div>
                   )}
@@ -514,6 +539,12 @@ export default function App() {
                         boxesRequired={stats.boxesRequired}
                         estimatedCost={stats.estimatedCost}
                         viewMode="results"
+                        skirtingEnabled={activeRoom.skirtingEnabled || false}
+                        onSkirtingEnabledChange={(skirtingEnabled) => updateActiveRoom({ skirtingEnabled })}
+                        skirtingHeight={activeRoom.skirtingHeight || 100}
+                        onSkirtingHeightChange={(skirtingHeight) => updateActiveRoom({ skirtingHeight })}
+                        skirtingTilesCount={stats.skirtingTilesCount || 0}
+                        skirtingLengthDisplay={stats.skirtingLengthDisplay || 0}
                       />
 
                       {/* Expandable layout recommendations */}

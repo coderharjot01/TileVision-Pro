@@ -46,7 +46,8 @@ export default function MultiRoom({
       width: defaultW,
       height: defaultH,
       unit: unit,
-      tilePrice: 150 // default price
+      tilePrice: 150, // default price
+      options: {}
     };
 
     const updated = [...rooms, newRoom];

@@ -35,10 +35,16 @@ export default function RoomEditor({
   useEffect(() => {
     if (shape !== 'custom') {
       const generated = generateRoomVertices(shape, width, height, unit, options);
-      onUpdateActiveRoom({ vertices: generated });
+      // Only update if vertices have actually changed to prevent infinite loops
+      const hasChanged = !vertices || vertices.length !== generated.length ||
+        vertices.some((v, i) => v.x !== generated[i].x || v.y !== generated[i].y);
+      
+      if (hasChanged) {
+        onUpdateActiveRoom({ vertices: generated });
+      }
       setIsDrawClosed(true);
     }
-  }, [shape, width, height, unit, options]);
+  }, [shape, width, height, unit, options, vertices, onUpdateActiveRoom]);
 
   // Handle unit conversions
   const handleUnitToggle = (newUnit: Unit) => {

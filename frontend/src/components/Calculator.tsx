@@ -76,6 +76,12 @@ interface CalculatorProps {
   boxesRequired: number;
   estimatedCost: number;
   viewMode?: 'tiles' | 'budget' | 'results' | 'all';
+  skirtingEnabled?: boolean;
+  onSkirtingEnabledChange?: (enabled: boolean) => void;
+  skirtingHeight?: number;
+  onSkirtingHeightChange?: (height: number) => void;
+  skirtingTilesCount?: number;
+  skirtingLengthDisplay?: number;
 }
 
 export default function Calculator({
@@ -106,7 +112,13 @@ export default function Calculator({
   finalTilesNeeded,
   boxesRequired,
   estimatedCost,
-  viewMode = 'all'
+  viewMode = 'all',
+  skirtingEnabled = false,
+  onSkirtingEnabledChange,
+  skirtingHeight = 100,
+  onSkirtingHeightChange,
+  skirtingTilesCount = 0,
+  skirtingLengthDisplay = 0
 }: CalculatorProps) {
   const [showTooltip, setShowTooltip] = useState(false);
 
@@ -123,6 +135,7 @@ export default function Calculator({
   // Convert mm dimensions to display values
   const displayCustomWidth = Math.round(convertFromMm(tileWidth, tileUnit) * 100) / 100;
   const displayCustomHeight = Math.round(convertFromMm(tileHeight, tileUnit) * 100) / 100;
+  const displaySkirtingHeight = Math.round(convertFromMm(skirtingHeight, tileUnit) * 100) / 100;
 
   // Format currency
   const currencyFormatter = (val: number) => {
@@ -240,6 +253,64 @@ export default function Calculator({
             </div>
           </div>
         )}
+
+        {/* Skirting Settings */}
+        <div className="border-t border-gray-150/50 pt-4 mt-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-luxury-charcoal">Skirting Configuration</h3>
+              <p className="text-xs text-gray-500">Calculate extra tiles needed for room borders</p>
+            </div>
+            <div className="inline-flex bg-gray-100 p-0.5 rounded-full border border-gray-200 shadow-inner">
+              <button
+                type="button"
+                onClick={() => onSkirtingEnabledChange?.(false)}
+                className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer ${
+                  !skirtingEnabled
+                    ? 'bg-luxury-charcoal text-white shadow-sm'
+                    : 'text-gray-500 hover:text-luxury-charcoal'
+                }`}
+              >
+                No Skirting
+              </button>
+              <button
+                type="button"
+                onClick={() => onSkirtingEnabledChange?.(true)}
+                className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer ${
+                  skirtingEnabled
+                    ? 'bg-luxury-charcoal text-white shadow-sm'
+                    : 'text-gray-500 hover:text-luxury-charcoal'
+                }`}
+              >
+                Add Skirting
+              </button>
+            </div>
+          </div>
+
+          {skirtingEnabled && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 animate-fade-in">
+              <div>
+                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">
+                  Skirting Height ({tileUnit})
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={displaySkirtingHeight || ''}
+                  onChange={(e) => {
+                    const valMm = convertToMm(parseFloat(e.target.value) || 0, tileUnit);
+                    onSkirtingHeightChange?.(valMm);
+                  }}
+                  className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:border-luxury-gold outline-none font-semibold text-xs transition duration-300"
+                />
+              </div>
+              <div className="flex items-center text-[10px] text-gray-500 bg-gray-50/50 p-3 rounded-xl border border-gray-100 leading-relaxed">
+                <span>💡 Skirting pieces are cut along the length of your floor tiles. One tile yields multiple skirting planks depending on height.</span>
+              </div>
+            </div>
+          )}
+        </div>
         </div>
       )}
 
@@ -466,6 +537,34 @@ export default function Calculator({
             {pricingMode === 'packet' ? 'Packet coverage area' : 'Boxed coverage'}
           </div>
         </div>
+
+        {/* Skirting Length */}
+        {skirtingEnabled && (
+          <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm relative overflow-hidden flex flex-col justify-between h-28 animate-fade-in">
+            <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Skirting Perimeter</div>
+            <div className="text-2xl md:text-3xl font-light text-luxury-charcoal mt-2">
+              <CountUp value={skirtingLengthDisplay} formatter={(v) => v.toFixed(1)} />
+              <span className="text-xs font-semibold text-gray-400 ml-1 uppercase">{unit}</span>
+            </div>
+            <div className="text-[10px] text-gray-400 flex items-center gap-1 mt-1">
+              <span className="w-2 h-2 rounded-full bg-luxury-gold animate-pulse" /> Total Wall Borders
+            </div>
+          </div>
+        )}
+
+        {/* Skirting Tiles */}
+        {skirtingEnabled && (
+          <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm relative overflow-hidden flex flex-col justify-between h-28 animate-fade-in">
+            <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Skirting Tiles</div>
+            <div className="text-2xl md:text-3xl font-light text-luxury-charcoal mt-2">
+              <CountUp value={skirtingTilesCount} />
+              <span className="text-xs font-semibold text-gray-400 ml-1">pcs</span>
+            </div>
+            <div className="text-[10px] text-amber-500 flex items-center gap-1 mt-1">
+              💡 Cut from floor tiles
+            </div>
+          </div>
+        )}
 
       </div>
 

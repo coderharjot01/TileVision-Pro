@@ -110,6 +110,22 @@ export function calculateBoxes(totalTiles: number, tileWidthMm: number, tileHeig
 }
 
 /**
+ * Calculates the perimeter of a 2D polygon defined by vertices
+ */
+export function calculatePolygonPerimeter(vertices: Point[]): number {
+  let perimeter = 0;
+  const n = vertices.length;
+  for (let i = 0; i < n; i++) {
+    const p1 = vertices[i];
+    const p2 = vertices[(i + 1) % n];
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    perimeter += Math.sqrt(dx * dx + dy * dy);
+  }
+  return perimeter;
+}
+
+/**
  * Main calculation and layout engine.
  * Generates tiles, intersects them with the room, and aggregates statistics.
  */
@@ -126,7 +142,9 @@ export function calculateLayout(
   offsetDrag: Point = { x: 0, y: 0 }, // support visual offset adjustment
   pricingMode: 'tile' | 'packet' = 'tile',
   packetPrice: number = 0,
-  packetCoverage: number = 0
+  packetCoverage: number = 0,
+  skirtingEnabled: boolean = false,
+  skirtingHeight: number = 100 // in mm
 ): CalculationResult {
   if (roomVertices.length < 3 || tileWidth <= 0 || tileHeight <= 0) {
     return {
@@ -467,8 +485,26 @@ export function calculateLayout(
   // Calculate wastage count
   const wastageTilesCount = Math.ceil(tilesRequired * (wastagePercent / 100));
   
+  // Calculate skirting if active
+  let skirtingTilesCount = 0;
+  let skirtingLengthDisplay = 0;
+  if (skirtingEnabled && skirtingHeight && skirtingHeight > 0) {
+    const perimeterMm = calculatePolygonPerimeter(roomVertices);
+    skirtingLengthDisplay = convertFromMm(perimeterMm, unit);
+    
+    // Number of skirting pieces that can be cut out of a single floor tile's height
+    // Assuming length of skirting piece is equal to tileWidth
+    const piecesPerTile = Math.max(1, Math.floor(tileHeight / skirtingHeight));
+    
+    // Total skirting pieces needed to cover the perimeter
+    const totalPiecesRequired = Math.ceil(perimeterMm / tileWidth);
+    
+    // Total tiles required for skirting
+    skirtingTilesCount = Math.ceil(totalPiecesRequired / piecesPerTile);
+  }
+
   // Final tiles needed
-  const finalTilesNeededCount = tilesRequired + wastageTilesCount;
+  const finalTilesNeededCount = tilesRequired + wastageTilesCount + skirtingTilesCount;
   
   let boxesRequired = 0;
   let estimatedCost = 0;
@@ -494,6 +530,8 @@ export function calculateLayout(
     cutTilesCount,
     tilesRequired,
     wastageTilesCount,
+    skirtingTilesCount,
+    skirtingLengthDisplay: Math.round(skirtingLengthDisplay * 100) / 100,
     finalTilesNeededCount,
     boxesRequired,
     estimatedCost: Math.round(estimatedCost),

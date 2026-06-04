@@ -39,6 +39,8 @@ export interface Room {
   pricingMode?: 'tile' | 'packet';
   packetPrice?: number;
   packetCoverage?: number;
+  skirtingEnabled?: boolean;
+  skirtingHeight?: number; // in mm
   options?: { w2?: number; h2?: number; w3?: number; h3?: number };
 }
 
@@ -64,6 +66,8 @@ export interface CalculationResult {
   cutTilesCount: number;
   tilesRequired: number; // sum of full tiles and fractional equivalents of cuts
   wastageTilesCount: number;
+  skirtingTilesCount?: number;
+  skirtingLengthDisplay?: number;
   finalTilesNeededCount: number; // tilesRequired + wastage
   boxesRequired: number;
   estimatedCost: number;
