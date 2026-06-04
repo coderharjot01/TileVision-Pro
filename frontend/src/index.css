@@ -1,0 +1,146 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@200;300;400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter', sans-serif;
+  --font-display: 'Outfit', sans-serif;
+  
+  --color-luxury-charcoal: #121212;
+  --color-luxury-dark: #1A1A1A;
+  --color-luxury-light: #F8F9FA;
+  --color-luxury-marble: #F1EFEA;
+  --color-luxury-gold: #C5A880;
+  --color-luxury-gold-hover: #A3875E;
+  
+  --color-tile-full: #E8E8E8;
+  --color-tile-cut: #A2D2FF;
+  --color-tile-waste: #FFD166;
+  
+  --animate-fade-in: fade-in 0.6s ease-out forwards;
+  --animate-slide-up: slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-pulse-slow: pulse-slow 3s infinite ease-in-out;
+  
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes slide-up {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  @keyframes pulse-slow {
+    0%, 100% { opacity: 0.8; }
+    50% { opacity: 0.5; }
+  }
+}
+
+/* Base custom resets and setups */
+html, body {
+  font-family: var(--font-sans);
+  background-color: var(--color-luxury-light);
+  color: var(--color-luxury-charcoal);
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+}
+
+/* Custom premium design classes */
+
+/* Premium Dark and Light Glassmorphism Panel */
+.glass-panel {
+  background: rgba(26, 26, 26, 0.7);
+  backdrop-filter: blur(20px) saturate(120%);
+  -webkit-backdrop-filter: blur(20px) saturate(120%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-panel-light {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.glass-panel-light-hover {
+  transition: all 0.3s ease;
+}
+.glass-panel-light-hover:hover {
+  background: rgba(255, 255, 255, 0.8);
+  border-color: rgba(197, 168, 128, 0.4);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.08);
+}
+
+/* Subtle tile grid pattern overlay */
+.bg-grid-pattern {
+  background-size: 50px 50px;
+  background-image: 
+    linear-gradient(to right, rgba(18, 18, 18, 0.02) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(18, 18, 18, 0.02) 1px, transparent 1px);
+}
+
+.bg-grid-pattern-dark {
+  background-size: 50px 50px;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+}
+
+/* Luxury marble-inspired smooth gradients */
+.bg-marble-gradient {
+  background: radial-gradient(circle at 10% 20%, rgba(248, 249, 250, 1) 0%, rgba(241, 239, 234, 0.8) 90%);
+}
+
+.bg-dark-marble {
+  background: radial-gradient(circle at 10% 20%, rgba(26, 26, 26, 1) 0%, rgba(18, 18, 18, 1) 100%);
+}
+
+/* Gold Underline Link Effect */
+.gold-hover-underline {
+  position: relative;
+}
+.gold-hover-underline::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  transform: scaleX(0);
+  height: 2px;
+  bottom: -2px;
+  left: 0;
+  background-color: var(--color-luxury-gold);
+  transform-origin: bottom right;
+  transition: transform 0.25s ease-out;
+}
+.gold-hover-underline:hover::after {
+  transform: scaleX(1);
+  transform-origin: bottom left;
+}
+
+/* Custom Scrollbar for Luxury Aesthetics */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.02);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(197, 168, 128, 0.3);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(197, 168, 128, 0.6);
+}
+
+/* Realistic Tile Visual styles */
+.tile-full-color {
+  background-color: var(--color-tile-full);
+}
+.tile-cut-color {
+  background-color: var(--color-tile-cut);
+}
+.tile-waste-color {
+  background-color: var(--color-tile-waste);
+}
