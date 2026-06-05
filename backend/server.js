@@ -3,6 +3,12 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const stripe = require('stripe');
+
+// Polyfill WebSocket for Supabase client in Node.js environment
+if (typeof global.WebSocket === 'undefined') {
+  global.WebSocket = require('ws');
+}
+
 const { createClient } = require('@supabase/supabase-js');
 
 // Load environment variables from .env
