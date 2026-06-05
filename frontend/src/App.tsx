@@ -11,6 +11,10 @@ import AIRecommender from './components/AIRecommender';
 import MultiRoom from './components/MultiRoom';
 import ProjectList from './components/ProjectList';
 import FloatingPanel from './components/FloatingPanel';
+import { supabase } from './utils/supabaseClient';
+import AuthModal from './components/AuthModal';
+import SubscriptionModal from './components/SubscriptionModal';
+import UserNav from './components/UserNav';
 
 import { Project, Room, Pattern, StartPosition, Unit, RoomShape, Point } from './utils/types';
 import { calculateLayout, generateRoomVertices } from './utils/tileCalculations';
@@ -60,7 +64,70 @@ export default function App() {
   const [tileUnit, setTileUnit] = useState<Unit>('mm');
   const [wizardStep, setWizardStep] = useState<number>(1);
 
+  // SaaS auth & billing states
+  const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
+
   const plannerRef = useRef<HTMLDivElement | null>(null);
+
+  // Monitor Auth Status
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Fetch or create user profile in DB
+  useEffect(() => {
+    if (!user) {
+      setProfile(null);
+      return;
+    }
+
+    const fetchOrCreateProfile = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        if (error && error.code === 'PGRST116') {
+          // Profile not found, create one
+          const { data: newProfile, error: insertError } = await supabase
+            .from('profiles')
+            .insert([{ id: user.id, email: user.email!, subscription_status: 'free' }])
+            .select()
+            .single();
+
+          if (insertError) throw insertError;
+          setProfile(newProfile);
+        } else if (error) {
+          throw error;
+        } else {
+          setProfile(data);
+        }
+      } catch (err) {
+        console.error('Error fetching/creating profile:', err);
+      }
+    };
+
+    fetchOrCreateProfile();
+  }, [user]);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setProfile(null);
+  };
 
   // Compute active room from list
   const activeRoom = useMemo(() => {
@@ -219,6 +286,12 @@ export default function App() {
 
   // Export PDF layout estimation
   const handleExportPDF = () => {
+    const isPro = profile?.subscription_status === 'pro';
+    if (!isPro) {
+      setIsSubscriptionModalOpen(true);
+      return;
+    }
+
     const canvas = document.querySelector('canvas');
     exportProjectPDF({
       project,
@@ -319,14 +392,33 @@ export default function App() {
             </button>
           </div>
 
-          {/* Title tag */}
-          <div className="text-right hidden md:block">
-            <h3 className="text-sm font-bold text-luxury-charcoal uppercase tracking-wider font-display">
-              {project.name}
-            </h3>
-            <p className="text-[10px] text-gray-500">
-              Editing: {activeRoom.name}
-            </p>
+          {/* Title and User Profile / Sign In */}
+          <div className="flex items-center gap-4">
+            <div className="text-right hidden md:block">
+              <h3 className="text-sm font-bold text-luxury-charcoal uppercase tracking-wider font-display">
+                {project.name}
+              </h3>
+              <p className="text-[10px] text-gray-500">
+                Editing: {activeRoom.name}
+              </p>
+            </div>
+
+            {user ? (
+              <UserNav
+                email={user.email!}
+                userId={user.id}
+                subscriptionStatus={profile?.subscription_status || 'free'}
+                onLogout={handleLogout}
+                onOpenPricing={() => setIsSubscriptionModalOpen(true)}
+              />
+            ) : (
+              <button
+                onClick={() => setIsAuthModalOpen(true)}
+                className="px-4 py-2.5 rounded-xl border border-gray-200 hover:border-luxury-gold text-luxury-charcoal hover:bg-white font-bold text-xs uppercase tracking-wider transition-all duration-300 cursor-pointer shadow-sm"
+              >
+                Sign In
+              </button>
+            )}
           </div>
         </div>
 
@@ -759,6 +851,9 @@ export default function App() {
                 setActiveTab('design');
                 triggerParticles();
               }}
+              user={user}
+              subscriptionStatus={profile?.subscription_status || 'free'}
+              onOpenPricing={() => setIsSubscriptionModalOpen(true)}
               onSaveTrigger={fetchProjectsTriggerDummy}
             />
           </div>
@@ -773,6 +868,18 @@ export default function App() {
         onExportPDF={handleExportPDF}
         onSaveFocus={handleSaveFocus}
         onConfettiTrigger={triggerParticles}
+      />
+
+      {/* SaaS Auth & Billing Modals */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+      />
+      <SubscriptionModal
+        isOpen={isSubscriptionModalOpen}
+        onClose={() => setIsSubscriptionModalOpen(false)}
+        userEmail={user?.email}
+        userId={user?.id}
       />
     </div>
   );
